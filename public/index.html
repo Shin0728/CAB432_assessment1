@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Video Transcoder</title>
+</head>
+<body>
+  <h2>Upload Video</h2>
+  <form id="uploadForm">
+    Section: <input type="text" id="section" value="default"><br>
+    <input type="file" id="videos" multiple><br>
+    <button type="submit">Upload</button>
+  </form>
+
+  <h2>Uploaded List</h2>
+  <button onclick="listVideos()">Refresh List</button>
+  <ul id="videoList"></ul>
+  <h2>選擇轉檔影片</h2>
+
+  <button onclick="transcodeSelected()">轉檔</button>
+
+<script>
+async function listVideos() {
+  const section = document.getElementById("section").value;
+  const res = await fetch(`/api/videos/list?section=${section}`);
+  const data = await res.json();
+  const ul = document.getElementById("videoList");
+  ul.innerHTML = "";
+  data.files.forEach(f => {
+    const li = document.createElement("li");
+    li.innerHTML = `<input type="checkbox" value="${f}">${f}`;
+    ul.appendChild(li);
+  });
+}
+
+document.getElementById("uploadForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const section = document.getElementById("section").value;
+  const files = document.getElementById("videos").files;
+  const formData = new FormData();
+  formData.append("section", section);
+  for (let f of files) formData.append("videos", f);
+
+  const res = await fetch("/api/videos/upload", { method: "POST", body: formData });
+  const data = await res.json();
+  alert(data.message);
+  listVideos();
+});
+
+async function transcodeSelected() {
+  const section = document.getElementById("section").value;
+  const checkboxes = document.querySelectorAll("#videoList input[type=checkbox]:checked");
+  const files = Array.from(checkboxes).map(cb => cb.value);
+
+  const res = await fetch("/api/videos/transcode", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ section, files })
+  });
+  const data = await res.json();
+  alert(data.message);
+}
+</script>
+</body>
+</html>
