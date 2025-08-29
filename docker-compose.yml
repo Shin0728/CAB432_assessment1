@@ -1,0 +1,25 @@
+version: "3.9"
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+    environment:
+      - DB_HOST=db
+      - DB_USER=root
+      - DB_PASSWORD=yourpassword
+      - DB_NAME=yourdbname
+
+  db:
+    image: mariadb:11
+    restart: always
+    environment:
+      - MARIADB_ROOT_PASSWORD=yourpassword
+      - MARIADB_DATABASE=yourdbname
+    volumes:
+      - db_data:/var/lib/mysql
+
+volumes:
+  db_data:

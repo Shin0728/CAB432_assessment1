@@ -4,7 +4,7 @@ require('dotenv').config();
 const mariadb = require('mariadb');
 
 console.log('dotenv path:', __dirname);
-console.log('DB_USER from env:', process.env.DB_USER);
+console.log('DB_USER from env:', process.env.DB_USER); 
 
 const pool = mariadb.createPool({
   host: process.env.DB_HOST,   //|| 'localhost'
