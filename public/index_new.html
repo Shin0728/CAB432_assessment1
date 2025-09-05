@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>StudyTube User Page</title>
+  <style>
+    .progress-bar {
+      width: 300px;
+      background: #ddd;
+      height: 20px;
+      border-radius: 5px;
+      margin-top: 5px;
+    }
+    .progress {
+      height: 100%;
+      width: 0%;
+      background: green;
+      border-radius: 5px;
+      transition: width 0.3s;
+    }
+    button:disabled {
+      background: #aaa;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <h1>User Page</h1>
+  <button id="logoutBtn">Logout</button>
+
+  <h2>Upload Video</h2>
+  <form id="uploadForm">
+    Section: <input type="text" id="section" value="default"><br>
+    <input type="file" id="videos" multiple><br>
+    <button type="submit">Upload</button>
+  </form>
+
+  <h2>Uploaded Videos</h2>
+  <button onclick="listVideos()">Refresh List</button>
+  <ul id="videoList"></ul>
+
+  <h2>Transcoding</h2>
+  <button onclick="transcodeSelected()">Start Transcoding</button>
+  <ul id="transcodeList"></ul>
+
+  <script>
+    const token = localStorage.getItem("authToken");
+    if (!token) window.location.href = "/login.html";
+
+    document.getElementById("logoutBtn").addEventListener("click", () => {
+      localStorage.removeItem("authToken");
+      window.location.href = "/login.html";
+    });
+
+    async function listVideos() {
+      const section = document.getElementById("section").value;
+      const res = await fetch(`/videos/list?section=${section}`, {
+        headers: { "Authorization": "Bearer " + token }
+      });
+      const data = await res.json();
+      const ul = document.getElementById("videoList");
+      ul.innerHTML = "";
+      data.files.forEach(f => {
+        const li = document.createElement("li");
+        li.innerHTML = `<input type="checkbox" value="${f}">${f}`;
+        ul.appendChild(li);
+      });
+    }
+
+    document.getElementById("uploadForm").addEventListener("submit", async e => {
+      e.preventDefault();
+      const section = document.getElementById("section").value;
+      const files = document.getElementById("videos").files;
+      const formData = new FormData();
+      formData.append("section", section);
+      for (let f of files) formData.append("videos", f);
+
+      const res = await fetch("/videos/upload", {
+        method: "POST",
+        body: formData,
+        headers: { "Authorization": "Bearer " + token }
+      });
+      const data = await res.json();
+      alert(data.message);
+      listVideos();
+    });
+
+    // 建立 transcoding list UI
+    function addTranscodeUI(file) {
+      const ul = document.getElementById("transcodeList");
+      const li = document.createElement("li");
+      li.id = `task-${file}`;
+      li.innerHTML = `
+        ${file} 
+        <div class="progress-bar"><div class="progress" id="progress-${file}"></div></div>
+        <button id="download-${file}" disabled>Download</button>
+      `;
+      ul.appendChild(li);
+    }
+
+    async function transcodeSelected() {
+      const section = document.getElementById("section").value;
+      const checkboxes = document.querySelectorAll("#videoList input[type=checkbox]:checked");
+      const files = Array.from(checkboxes).map(cb => cb.value);
+
+      // 建立 UI
+      files.forEach(f => addTranscodeUI(f));
+
+      const res = await fetch("/videos/transcode", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify({ section, files })
+      });
+      const data = await res.json();
+      console.log(data.message);
+
+      // 開始輪詢進度
+      pollProgress(section, files);
+    }
+
+    async function pollProgress(section, files) {
+      const interval = setInterval(async () => {
+        const res = await fetch(`/videos/status?section=${section}`, {
+          headers: { "Authorization": "Bearer " + token }
+        });
+        const data = await res.json();
+        let allDone = true;
+
+        files.forEach(f => {
+          const task = data.tasks[f];
+          if (!task) return;
+          const progressDiv = document.getElementById(`progress-${f}`);
+          const downloadBtn = document.getElementById(`download-${f}`);
+          progressDiv.style.width = task.progress + "%";
+
+          if (task.status === "completed") {
+            downloadBtn.disabled = false;
+            downloadBtn.onclick = () => {
+              window.location.href = `/videos/download?section=${section}&file=${f}.mp4`;
+            };
+          } else if (task.status === "error") {
+            progressDiv.style.background = "red";
+            downloadBtn.disabled = true;
+          } else {
+            allDone = false;
+          }
+        });
+
+        if (allDone) clearInterval(interval);
+      }, 1000);
+    }
+
+    // 初始化列表
+    listVideos();
+  </script>
+</body>
+</html>

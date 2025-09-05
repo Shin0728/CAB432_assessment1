@@ -3,8 +3,8 @@
 require('dotenv').config();
 const mariadb = require('mariadb');
 
-console.log('dotenv path:', __dirname);
-console.log('DB_USER from env:', process.env.DB_USER); 
+// console.log('dotenv path:', __dirname);
+// console.log('DB_USER from env:', process.env.DB_USER); 
 
 const pool = mariadb.createPool({
   host: process.env.DB_HOST,   //|| 'localhost'
@@ -19,12 +19,13 @@ const pool = mariadb.createPool({
 (async () => {
   let conn;
   try {
-    console.log("Connecting to DB:", process.env.DB_HOST, process.env.DB_PORT);
+    // console.log("Connecting to DB:", process.env.DB_HOST, process.env.DB_PORT);
     conn = await pool.getConnection();
     console.log('Connection successful.');
     await conn.query(`
       CREATE TABLE IF NOT EXISTS uploads (
         id INT AUTO_INCREMENT PRIMARY KEY,
+        username VARCHAR(10),
         section_number VARCHAR(50),
         filename VARCHAR(255),
         mimetype VARCHAR(100),

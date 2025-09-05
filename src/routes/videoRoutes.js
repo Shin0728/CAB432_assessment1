@@ -1,20 +1,62 @@
-// Now that we have a model and controller, we need to connect 
-// these to the interface of the Task Manager app. Our UI is going
-//  to be a REST HTTP API, therefore, we need to tell the Express 
-// app what are our endpoints/routes (i.e., HTTP URLs) for reaching
-// the controllers.
+/**
+ * Video Routes for Task Manager App
+ * 
+ * Connects the videoController logic to REST API endpoints.
+ * Each endpoint uses Express Router and is protected by JWT authentication.
+ * Implementation inspired by CAB432 course guidance.
+ */
 
 const express = require("express");
 const router = express.Router();
+const auth = require("../auth");
 const videoController = require("../controllers/videoController");
 
-// 上傳影片（支援多檔）
-router.post("/upload", videoController.uploadVideos);
+// =======================
+// Upload Videos (supports multiple files)
+// Endpoint: POST /upload
+// Protected: Requires valid JWT token
+// =======================
+router.post("/upload", auth.authenticateToken, videoController.uploadVideos);
 
-// 顯示已上傳影片清單
-router.get("/list", videoController.listVideos);
+// =======================
+// List Uploaded Videos for a User and Section
+// Endpoint: GET /list
+// Protected: Requires valid JWT token
+// Returns list of files from user's upload folder
+// =======================
+router.get("/list", auth.authenticateToken, videoController.listVideos);
 
-// 選擇影片進行轉檔
-router.post("/transcode", videoController.transcodeVideos);
+// =======================
+// List All Uploads (Admin Only)
+// Endpoint: GET /allUploads
+// Protected: Requires valid JWT token
+// Returns all uploaded files and metadata from the database
+// =======================
+router.get('/allUploads', auth.authenticateToken, videoController.getAllUploads);
 
+// =======================
+// Transcode Selected Videos
+// Endpoint: POST /transcode
+// Protected: Requires valid JWT token
+// Starts transcoding process for selected videos
+// =======================
+router.post("/transcode", auth.authenticateToken, videoController.transcodeVideos);
+
+// =======================
+// Check Status of Transcoding Tasks
+// Endpoint: GET /status
+// Protected: Requires valid JWT token
+// Returns current status of all transcoding tasks for the user
+// =======================
+router.get("/status", auth.authenticateToken, videoController.getTaskStatus);
+
+// =======================
+// Download Transcoded Video
+// Endpoint: GET /download/:section/:file
+// Protected: Requires valid JWT token
+// Allows user to download a completed transcoded video
+// =======================
+router.get("/download/:section/:file", auth.authenticateToken, videoController.downloadVideo);
+
+// Export router to be used in main Express app
 module.exports = router;

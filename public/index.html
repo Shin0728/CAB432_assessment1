@@ -1,64 +1,77 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Video Transcoder</title>
-</head>
-<body>
-  <h2>Upload Video</h2>
-  <form id="uploadForm">
-    Section: <input type="text" id="section" value="default"><br>
-    <input type="file" id="videos" multiple><br>
-    <button type="submit">Upload</button>
-  </form>
-
-  <h2>Uploaded List</h2>
-  <button onclick="listVideos()">Refresh List</button>
-  <ul id="videoList"></ul>
-  <h2>選擇轉檔影片</h2>
-
-  <button onclick="transcodeSelected()">轉檔</button>
+<h1>🎬 Welcome to StudyTube</h1>
+<form id="loginForm">
+  <input type="text" id="username" placeholder="Username" required />
+  <input type="password" id="password" placeholder="Password" required />
+  <button type="submit">Login</button>
+</form>
 
 <script>
-async function listVideos() {
-  const section = document.getElementById("section").value;
-  const res = await fetch(`/api/videos/list?section=${section}`);
-  const data = await res.json();
-  const ul = document.getElementById("videoList");
-  ul.innerHTML = "";
-  data.files.forEach(f => {
-    const li = document.createElement("li");
-    li.innerHTML = `<input type="checkbox" value="${f}">${f}`;
-    ul.appendChild(li);
+  /**
+ * Styles for StudyTube UI
+ * Inspired by CAB432 and ChatGPT suggestions
+ */
+  const form = document.getElementById("loginForm");
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
+
+    try {
+      const res = await fetch("/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password })
+      });
+
+      if (!res.ok) {
+        alert("Login failed: invalid username or password");
+        return;
+      }
+
+      const data = await res.json();
+      console.log("Server response:", data);
+      localStorage.setItem("authToken", data.authToken);
+
+      if (!data.authToken) {
+        console.error("No authToken received!");
+        return;
+      }
+
+
+
+      // 解碼 JWT
+      const payload = JSON.parse(atob(data.authToken.split(".")[1]));
+      console.log("Decoded payload:", payload);
+      console.log("The user loged in is:" + payload.username);
+      console.log("The user role is:" + payload.role);
+
+      if (payload.role === "admin") {
+        // 驗證 admin 權限
+
+
+        const verifyRes = await fetch("/admin/verify", {
+          method: "GET",
+          headers: { "Authorization": "Bearer " + data.authToken }
+        });
+
+        if (!verifyRes.ok) {
+          alert("You do not have admin privileges. Redirecting to main page.");
+          window.location.href = "/user.html";
+          return;
+        }
+
+        window.location.href = "/admin.html";
+      } else {
+        console.log("The user loged in is:" + payload.username + ". No admin permission.");
+        window.location.href = "/user.html";
+      }
+
+    } catch (err) {
+      console.error("Login error:", err);
+      alert("Login failed: server error");
+    }
   });
-}
-
-document.getElementById("uploadForm").addEventListener("submit", async e => {
-  e.preventDefault();
-  const section = document.getElementById("section").value;
-  const files = document.getElementById("videos").files;
-  const formData = new FormData();
-  formData.append("section", section);
-  for (let f of files) formData.append("videos", f);
-
-  const res = await fetch("/api/videos/upload", { method: "POST", body: formData });
-  const data = await res.json();
-  alert(data.message);
-  listVideos();
-});
-
-async function transcodeSelected() {
-  const section = document.getElementById("section").value;
-  const checkboxes = document.querySelectorAll("#videoList input[type=checkbox]:checked");
-  const files = Array.from(checkboxes).map(cb => cb.value);
-
-  const res = await fetch("/api/videos/transcode", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ section, files })
-  });
-  const data = await res.json();
-  alert(data.message);
-}
 </script>
-</body>
-</html>

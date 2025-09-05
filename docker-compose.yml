@@ -1,25 +1,58 @@
-version: "3.9"
-services:
-  app:
-    build: .
-    ports:
-      - "3000:3000"
-    depends_on:
-      - db
-    environment:
-      - DB_HOST=db
-      - DB_USER=root
-      - DB_PASSWORD=yourpassword
-      - DB_NAME=yourdbname
+# version: '3.9'
 
-  db:
-    image: mariadb:11
-    restart: always
-    environment:
-      - MARIADB_ROOT_PASSWORD=yourpassword
-      - MARIADB_DATABASE=yourdbname
-    volumes:
-      - db_data:/var/lib/mysql
+# services:
+#   db:
+#     image: mariadb:11
+#     container_name: mariadb
+#     restart: always
+#     env_file:
+#       - .env
+#     volumes:
+#       - mariadb-data:/var/lib/mysql
+#     ports:
+#       - "3306:3306"
 
-volumes:
-  db_data:
+#   app:
+#     build: .
+#     container_name: video_trans
+#     restart: always
+#     env_file:
+#       - .env
+#     ports:
+#       - "3000:3000"
+#     depends_on:
+#       - db
+
+# volumes:
+#   mariadb-data:
+
+
+
+
+
+
+# version: "3.9"
+# services:
+#   app:
+#     build: .
+#     ports:
+#       - "3000:3000"
+#     depends_on:
+#       - db
+#     environment:
+#       - DB_HOST=db
+#       - DB_USER=root
+#       - DB_PASSWORD=yourpassword
+#       - DB_NAME=yourdbname
+
+#   db:
+#     image: mariadb:11
+#     restart: always
+#     environment:
+#       - MARIADB_ROOT_PASSWORD=yourpassword
+#       - MARIADB_DATABASE=yourdbname
+#     volumes:
+#       - db_data:/var/lib/mysql
+
+# volumes:
+#   db_data:

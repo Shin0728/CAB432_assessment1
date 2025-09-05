@@ -1,0 +1,194 @@
+<!-- <!DOCTYPE html>
+<html>
+<head>
+  <title>StudyTube</title>
+  <h1>This is the ADMIN page.</h1>
+</head>
+<body>
+  <h2>Upload Video</h2>
+  <form id="uploadForm">
+    Section: <input type="text" id="section" value="default"><br>
+    <input type="file" id="videos" multiple><br>
+    <button type="submit">Upload</button>
+  </form>
+
+  <h2>Uploaded List</h2>
+  <button onclick="listVideos()">Refresh List</button>
+  <ul id="videoList"></ul>
+  <h2>select video to transcoding</h2>
+
+  <button onclick="transcodeSelected()">Transcode</button>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+    const token = localStorage.getItem("authToken");
+
+    if (!token) {
+      console.error("No token found, redirecting to login...");
+      window.location.href = "/login.html";
+      return;
+    }
+
+    console.log("Token from localStorage:", Token);
+
+    // 用 fetch 帶 token 給後端驗證
+    fetch("/admin", {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + localStorage.getItem("authToken"),
+      }
+    })
+    .then(res => {
+      if (!res.ok) {
+        throw new Error("Unauthorized, redirecting...");
+      }
+      return res.text();
+    })
+    .then(data => {
+      document.body.innerHTML += `<p>Admin Data: ${data}</p>`;
+    })
+    .catch(err => {
+      console.error(err);
+      window.location.href = "/login.html";
+    });
+  });
+  console.log("Token from localStorage:", localStorage.getItem("authToken"));
+
+
+  const token = localStorage.getItem("authToken");
+  console.log("Token from localStorage:", token);
+
+  if (!token) {
+    alert("No token found. Please login first.");
+    window.location.href = "/login.html";
+  }  
+
+
+//   async function listVideos() {
+//     const section = document.getElementById("section").value;
+//     // const res = await fetch(`/api/videos/list?section=${section}`);
+
+//     const res = await fetch(`/videos/list?section=${section}`, {
+//       headers: { "Authorization": "Bearer " + token }
+//     });
+//   if (!res.ok) {
+//     alert("Unauthorized:" + token+"end.");
+//     return ("Unauthorized:" + token+"end.");
+//   }
+
+//   const data = await res.json();
+//   const ul = document.getElementById("videoList");
+//   ul.innerHTML = "";
+//   data.files.forEach(f => {
+//     const li = document.createElement("li");
+//     li.innerHTML = `<input type="checkbox" value="${f}">${f}`;
+//     ul.appendChild(li);
+//   });
+// }
+
+// document.getElementById("uploadForm").addEventListener("submit", async e => {
+//   e.preventDefault();
+//   const section = document.getElementById("section").value;
+//   const files = document.getElementById("videos").files;
+//   const formData = new FormData();
+//   formData.append("section", section);
+//   for (let f of files) formData.append("videos", f);
+
+//   // const res = await fetch("/api/videos/upload", { method: "POST", body: formData });
+//   // const token = localStorage.getItem("authToken");
+
+//   const res = await fetch(`/api/videos/upload?section=${section}`, { method: "POST", body: formData }, {
+//     headers: { "Authorization": "Bearer " + token }
+//   });
+
+//   if (!res.ok) {
+//     alert("Unauthorized");
+//     return;
+//   }
+  
+  
+//   const data = await res.json();
+//   alert(data.message);
+//   listVideos();
+// });
+
+// async function transcodeSelected() {
+//   const section = document.getElementById("section").value;
+//   const checkboxes = document.querySelectorAll("#videoList input[type=checkbox]:checked");
+//   const files = Array.from(checkboxes).map(cb => cb.value);
+
+//   const res = await fetch("/api/videos/transcode", {
+//     method: "POST",
+//     headers: { "Content-Type": "application/json" },
+//     body: JSON.stringify({ section, files })
+//   });
+//   const data = await res.json();
+//   alert(data.message);
+// }
+</script>
+</body>
+</html> -->
+
+
+
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>StudyTube</title>
+  <h1>This is the ADMIN page.</h1>
+</head>
+<body>
+  <h2>Upload Video</h2>
+  <form id="uploadForm">
+    Section: <input type="text" id="section" value="default"><br>
+    <input type="file" id="videos" multiple><br>
+    <button type="submit">Upload</button>
+  </form>
+
+  <h2>Uploaded List</h2>
+  <button onclick="listVideos()">Refresh List</button>
+  <ul id="videoList"></ul>
+  <h2>Select video to transcode</h2>
+  <button onclick="transcodeSelected()">Transcode</button>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const token = localStorage.getItem("authToken");
+
+  if (!token) {
+    alert("No token found, redirecting to login...");
+    window.location.href = "/login.html";
+    return;
+  }
+
+  console.log("Token from localStorage:", token);
+
+  // 驗證 admin 身分
+  fetch("/admin", {
+    method: "GET",
+    headers: {
+    "Content-Type": "application/json",
+    "Authorization": " Bearer " + localStorage.getItem("authtoken")
+    }
+  })
+  .then(res => {
+    if (!res.ok) {
+      throw new Error("Unauthorized, redirecting...");
+    }
+    return res.text();
+  })
+  .then(data => {
+    document.body.innerHTML += `<p>Admin Data: ${data}</p>`;
+  })
+  .catch(err => {
+    console.error(err);
+    window.location.href = "/login.html";
+  });
+});
+
+// TODO: 把 listVideos / upload / transcode 的 fetch 都加上 Authorization header
+</script>
+</body>
+</html>

@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>StudyTube</title>
+  <style>
+    /**
+     * Styles for StudyTube UI
+     * Inspired by CAB432 and ChatGPT suggestions
+     */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+
+    h1 {
+      color: #333;
+    }
+
+    .section {
+      margin-bottom: 30px;
+    }
+
+    /* ✅ Container for lists like uploaded videos and queue */
+    .list-container {
+      border: 2px solid #ccc;
+      border-radius: 8px;
+      padding: 15px;
+      margin-top: 10px;
+      padding-bottom: 25px;
+      background: #fafafa;
+    }
+
+    .list-container h3 {
+      margin-top: 0;
+      font-size: 1rem;
+      color: #555;
+    }
+
+    /* ✅ Table styles for lists */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    th,
+    td {
+      padding: 10px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+
+    th {
+      background-color: #e6f3ff;
+      font-weight: bold;
+    }
+
+    tr:hover {
+      background-color: #f5faff;
+    }
+
+    /* ✅ Progress bar style (currently unused) */
+    .progress-bar {
+      width: 200px;
+      height: 10px;
+      background: #eee;
+      border-radius: 5px;
+      overflow: hidden;
+      display: inline-block;
+      margin: 0 10px;
+    }
+
+    .progress {
+      height: 100%;
+      background: #4caf50;
+      width: 0%;
+      transition: width 0.3s;
+    }
+
+    button[disabled] {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>🎬 Welcome to StudyTube</h1>
+  <button id="logoutBtn">Logout</button>
+
+  <!-- =======================
+       Upload Section
+       Allows user to select section and multiple video files
+  ======================= -->
+  <div class="section">
+    <h2>Upload Video</h2>
+    <form id="uploadForm">
+      Section: <input type="text" id="section" value="default"><br><br>
+      <input type="file" id="videos" multiple><br><br>
+      <button type="submit">Upload</button>
+    </form>
+  </div>
+
+  <!-- =======================
+       Uploaded Videos Section
+       Shows list of uploaded videos for current user & section
+  ======================= -->
+  <div class="section">
+    <h2>Uploaded List</h2>
+    <button onclick="listVideos()">Refresh List</button>
+    <div class="list-container">
+      <h3>Uploaded Files</h3>
+      <table id="videoTable">
+        <thead>
+          <tr>
+            <th>Select</th>
+            <th>File Name</th>
+          </tr>
+        </thead>
+        <tbody id="videoList"></tbody>
+      </table>
+    </div>
+
+    <button onclick="transcodeSelected()">Start Transcoding</button>
+  </div>
+
+  <!-- =======================
+       Transcoding Queue Section
+       Shows status of ongoing/completed transcoding tasks
+  ======================= -->
+  <div class="section">
+    <h2>Transcoding Queue</h2>
+    <button onclick="refreshTranscodeQueue()">Refresh Transcoding Queue</button>
+    <div class="list-container">
+      <h3>Queue Status</h3>
+      <table id="transcodeTable">
+        <thead>
+          <tr>
+            <th>File Name</th>
+            <th>Status</th>
+            <th>Download</th>
+          </tr>
+        </thead>
+        <tbody id="transcodeList"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    // =======================
+    // Authentication: Redirect to login if no token
+    // =======================
+    const token = localStorage.getItem("authToken");
+    if (!token) window.location.href = "/index.html";
+
+    // Logout button clears token and redirects
+    document.getElementById("logoutBtn").addEventListener("click", () => {
+      localStorage.removeItem("authToken");
+      window.location.href = "/index.html";
+    });
+
+    // =======================
+    // Function to list uploaded videos
+    // Fetches from backend API and updates table
+    // =======================
+    async function listVideos() {
+      const section = document.getElementById("section").value;
+      const res = await fetch(`/videos/list?section=${section}`, {
+        headers: { "Authorization": "Bearer " + token }
+      });
+      const data = await res.json();
+      const tbody = document.getElementById("videoList");
+      tbody.innerHTML = "";
+
+      data.files.forEach(f => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td><input type="checkbox" value="${f}"></td>
+          <td>${f}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // =======================
+    // Handle video upload form submission
+    // Sends POST request with FormData to backend
+    // =======================
+    document.getElementById("uploadForm").addEventListener("submit", async e => {
+      e.preventDefault();
+      const section = document.getElementById("section").value;
+      const files = document.getElementById("videos").files;
+      const formData = new FormData();
+      formData.append("section", section);
+      for (let f of files) formData.append("videos", f);
+
+      const res = await fetch("/videos/upload", {
+        method: "POST",
+        body: formData,
+        headers: { "Authorization": "Bearer " + token }
+      });
+      const data = await res.json();
+      alert(data.message);
+      listVideos(); // Refresh list after upload
+    });
+
+    // =======================
+    // Refresh transcoding queue status
+    // =======================
+    async function refreshTranscodeQueue() {
+      const section = document.getElementById("section").value;
+      try {
+        const res = await fetch("/videos/status", {
+          headers: { "Authorization": "Bearer " + token }
+        });
+        if (!res.ok) return console.error("Failed to fetch status:", res.status);
+        const data = await res.json();
+
+        const tbody = document.getElementById("transcodeList");
+        tbody.innerHTML = "";
+
+        for (const [file, task] of Object.entries(data.tasks)) {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${file}</td>
+            <td><span id="status-${file}">${task.status}</span></td>
+            <td><button id="download-${file}" ${task.status === "completed" ? "" : "disabled"}>Download</button></td>
+          `;
+          tbody.appendChild(tr);
+
+          // Enable download button for completed tasks
+          const downloadBtn = document.getElementById(`download-${file}`);
+          if (task.status === "completed") {
+            downloadBtn.onclick = async () => {
+              const res = await fetch(`/videos/download/${section}/${task.outputFile}`, {
+                headers: { "Authorization": "Bearer " + token }
+              });
+              if (!res.ok) return alert("Download failed: " + res.status);
+              const blob = await res.blob();
+              const url = window.URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = task.outputFile;
+              document.body.appendChild(a);
+              a.click();
+              a.remove();
+            };
+          }
+        }
+      } catch (err) {
+        console.error("Error in refreshTranscodeQueue:", err);
+      }
+    }
+
+    // =======================
+    // Start transcoding for selected videos
+    // Poll backend every 3s to update status and enable download
+    // =======================
+    async function transcodeSelected() {
+      const section = document.getElementById("section").value;
+      const checkboxes = document.querySelectorAll("#videoList input[type=checkbox]:checked");
+      const files = Array.from(checkboxes).map(cb => cb.value);
+
+      // Add selected files to UI queue (as <li> elements)
+      const ul = document.getElementById("transcodeList");
+      files.forEach(f => {
+        const li = document.createElement("li");
+        li.innerHTML = `
+          ${f} 
+          <span id="status-${f}">Processing</span>
+          <button id="download-${f}" disabled>Download</button>
+        `;
+        ul.appendChild(li);
+      });
+
+      // Call backend to start transcoding
+      const res = await fetch("/videos/transcode", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify({ section, files })
+      });
+      const data = await res.json();
+      console.log("Transcode started:", data);
+
+      // Poll backend for status updates every 3 seconds
+      files.forEach(f => {
+        const checkInterval = setInterval(async () => {
+          const statusRes = await fetch("/videos/status", {
+            headers: { "Authorization": "Bearer " + token }
+          });
+          const statusData = await statusRes.json();
+          const task = statusData.tasks[f];
+          if (!task) return;
+
+          const statusEl = document.getElementById(`status-${f}`);
+          const downloadBtn = document.getElementById(`download-${f}`);
+          statusEl.textContent = task.status;
+
+          if (task.status === "completed") {
+            downloadBtn.disabled = false;
+            downloadBtn.onclick = async () => {
+              const res = await fetch(`/videos/download/${section}/${task.outputFile}`, {
+                headers: { "Authorization": "Bearer " + token }
+              });
+              if (!res.ok) return alert("Download failed: " + res.status);
+              const blob = await res.blob();
+              const url = window.URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = task.outputFile;
+              document.body.appendChild(a);
+              a.click();
+              a.remove();
+            };
+            clearInterval(checkInterval); // Stop polling once completed
+          } else if (task.status === "error") {
+            statusEl.textContent = "Error";
+            clearInterval(checkInterval);
+          }
+        }, 3000);
+      });
+    }
+
+  </script>
+</body>
+
+</html>
