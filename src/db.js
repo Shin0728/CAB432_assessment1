@@ -6,10 +6,14 @@ const mariadb = require('mariadb');
 // console.log('dotenv path:', __dirname);
 // console.log('DB_USER from env:', process.env.DB_USER); 
 
+console.log('dotenv path:', __dirname);
+console.log('DB_USER_AWS from env:', process.env.DB_USER_AWS);
+console.log('DB_HOST_AWS from env:', process.env.DB_HOST_AWS); 
+
 const pool = mariadb.createPool({
-  host: process.env.DB_HOST,   //|| 'localhost'
+  host: process.env.DB_HOST_AWS,   //|| 'localhost'
   port: process.env.DB_PORT || 3306,
-  user: process.env.DB_USER,  // || 'user'
+  user: process.env.DB_USER_AWS,  // || 'user'
   password: process.env.DB_PASSWORD,  // || 'pass'
   database: process.env.DB_NAME,  // || 'videosdb'
   connectionLimit: 5,
@@ -19,7 +23,11 @@ const pool = mariadb.createPool({
 (async () => {
   let conn;
   try {
+
     // console.log("Connecting to DB:", process.env.DB_HOST, process.env.DB_PORT);
+
+    console.log("Connecting to DB:", process.env.DB_HOST_AWS, process.env.DB_PORT);
+
     conn = await pool.getConnection();
     console.log('Connection successful.');
     await conn.query(`
